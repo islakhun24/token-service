@@ -15,6 +15,7 @@ import (
 	"futures-symbol-module/internal/collector"
 	"futures-symbol-module/internal/config"
 	"futures-symbol-module/internal/handler"
+	"futures-symbol-module/internal/repository"
 	"futures-symbol-module/internal/symbol"
 	"futures-symbol-module/internal/worker"
 )
@@ -48,8 +49,21 @@ func main() {
 	// Initialize symbol service
 	svc := symbol.NewService(collectors, cgClient)
 
-	// Initialize handler
+	// Initialize database
+	db, err := repository.InitDB(cfg.DatabaseDSN())
+	if err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
+	}
+	repo := repository.NewPairRepository(db)
+
+	// Initialize cron worker
+	cronWorker := worker.NewCronWorker(svc, repo, cfg.CronSchedule)
+	cronWorker.Start()
+	defer cronWorker.Stop()
+
+	// Initialize handlers
 	futuresHandler := handler.NewFuturesHandler(svc)
+	dbPairsHandler := handler.NewDBPairsHandler(repo)
 
 	// Setup router
 	gin.SetMode(gin.ReleaseMode)
@@ -57,8 +71,16 @@ func main() {
 	r.Use(gin.Recovery())
 
 	r.GET("/futures/pairs", futuresHandler.GetPairs)
+	r.GET("/api/db/pairs", dbPairsHandler.GetPairs)
 
 	// Health check
+	r.GET("/", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"service": "token-service",
+			"status":  "active",
+		})
+	})
+
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"status": "ok"})
 	})
@@ -77,6 +99,7 @@ func main() {
 
 	log.Printf("🚀 Futures Symbol Module running on :%s", cfg.Port)
 	log.Printf("📡 Endpoint: GET http://localhost:%s/futures/pairs", cfg.Port)
+	log.Printf("📡 Endpoint: GET http://localhost:%s/api/db/pairs", cfg.Port)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)

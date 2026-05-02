@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"os"
 	"strings"
 
 	"futures-symbol-module/internal/symbol"
@@ -35,9 +36,13 @@ type bitgetResp struct {
 }
 
 func (c *BitgetCollector) FetchSymbols(ctx context.Context) ([]symbol.SymbolInput, error) {
+	baseURL := os.Getenv("BITGET_API_URL")
+	if baseURL == "" {
+		baseURL = "https://api.bitget.com"
+	}
 
 	req, _ := http.NewRequestWithContext(ctx, "GET",
-		"https://api.bitget.com/api/v2/mix/market/contracts?productType=USDT-FUTURES",
+		baseURL+"/api/v2/mix/market/contracts?productType=USDT-FUTURES",
 		nil,
 	)
 

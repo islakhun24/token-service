@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"os"
 
 	"futures-symbol-module/internal/symbol"
 	"futures-symbol-module/pkg/httpclient"
@@ -27,8 +28,13 @@ type okxResp struct {
 }
 
 func (c *OKXCollector) FetchSymbols(ctx context.Context) ([]symbol.SymbolInput, error) {
+	baseURL := os.Getenv("OKX_API_URL")
+	if baseURL == "" {
+		baseURL = "https://www.okx.com"
+	}
+
 	req, _ := http.NewRequestWithContext(ctx, "GET",
-		"https://www.okx.com/api/v5/public/instruments?instType=SWAP",
+		baseURL+"/api/v5/public/instruments?instType=SWAP",
 		nil,
 	)
 

@@ -59,7 +59,8 @@ func (s *Service) GetFuturesPairs(ctx context.Context) (*FuturesPairsResponse, e
 			// 🔥 IMPORTANT: sekarang ambil structured, bukan []string
 			items, err := c.FetchSymbols(ctx)
 			if err != nil {
-				return fmt.Errorf("%s: %w", c.Name(), err)
+				fmt.Printf("Warning: failed to fetch from %s: %v\n", c.Name(), err)
+				return nil
 			}
 
 			var parsed []ExchangeSymbol
