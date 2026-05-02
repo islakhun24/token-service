@@ -41,7 +41,7 @@ func (r *PairRepository) BulkUpsert(ctx context.Context, pairs []Pair) error {
 	// Use ON CONFLICT to update the existing rows based on the primary keys
 	return r.db.WithContext(ctx).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "base"}, {Name: "quote"}, {Name: "type"}},
-		DoUpdates: clause.AssignmentColumns([]string{"binance", "bybit", "okx", "mexc", "bitget", "kucoin", "coingecko_id", "market_cap"}),
+		DoUpdates: clause.AssignmentColumns([]string{"binance", "bybit", "okx", "mexc", "bitget", "kucoin", "coin_gecko_id", "market_cap"}),
 	}).CreateInBatches(pairs, 100).Error
 }
 
