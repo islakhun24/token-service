@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"os"
 
 	"futures-symbol-module/internal/symbol"
 	"futures-symbol-module/pkg/httpclient"
@@ -26,8 +27,13 @@ type mexcResp struct {
 }
 
 func (c *MexcCollector) FetchSymbols(ctx context.Context) ([]symbol.SymbolInput, error) {
+	baseURL := os.Getenv("MEXC_API_URL")
+	if baseURL == "" {
+		baseURL = "https://contract.mexc.com"
+	}
+
 	req, _ := http.NewRequestWithContext(ctx, "GET",
-		"https://contract.mexc.com/api/v1/contract/detail",
+		baseURL+"/api/v1/contract/detail",
 		nil,
 	)
 

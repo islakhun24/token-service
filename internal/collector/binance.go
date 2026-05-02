@@ -3,8 +3,8 @@ package collector
 import (
 	"context"
 	"encoding/json"
-	_"fmt"
 	"net/http"
+	"os"
 
 	"futures-symbol-module/internal/symbol"
 	"futures-symbol-module/pkg/httpclient"
@@ -31,7 +31,12 @@ type binanceResp struct {
 }
 
 func (c *BinanceCollector) FetchSymbols(ctx context.Context) ([]symbol.SymbolInput, error) {
-	req, _ := http.NewRequestWithContext(ctx, "GET", "https://fapi.binance.com/fapi/v1/exchangeInfo", nil)
+	baseURL := os.Getenv("BINANCE_API_URL")
+	if baseURL == "" {
+		baseURL = "https://fapi.binance.com"
+	}
+
+	req, _ := http.NewRequestWithContext(ctx, "GET", baseURL+"/fapi/v1/exchangeInfo", nil)
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, err

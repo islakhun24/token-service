@@ -3,9 +3,11 @@ package collector
 import (
 	"context"
 	"encoding/json"
+	"net/http"
+	"os"
+
 	"futures-symbol-module/internal/symbol"
 	"futures-symbol-module/pkg/httpclient"
-	"net/http"
 )
 
 type BybitCollector struct {
@@ -31,8 +33,13 @@ type bybitResp struct {
 }
 
 func (c *BybitCollector) FetchSymbols(ctx context.Context) ([]symbol.SymbolInput, error) {
+	baseURL := os.Getenv("BYBIT_API_URL")
+	if baseURL == "" {
+		baseURL = "https://api.bybit.com"
+	}
+
 	req, _ := http.NewRequestWithContext(ctx, "GET",
-		"https://api.bybit.com/v5/market/instruments-info?category=linear",
+		baseURL+"/v5/market/instruments-info?category=linear",
 		nil,
 	)
 

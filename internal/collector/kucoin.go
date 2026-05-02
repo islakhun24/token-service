@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"os"
 
 	"futures-symbol-module/internal/symbol"
 	"futures-symbol-module/pkg/httpclient"
@@ -29,8 +30,13 @@ type kucoinResp struct {
 }
 
 func (c *KucoinCollector) FetchSymbols(ctx context.Context) ([]symbol.SymbolInput, error) {
+	baseURL := os.Getenv("KUCOIN_API_URL")
+	if baseURL == "" {
+		baseURL = "https://api-futures.kucoin.com"
+	}
+
 	req, _ := http.NewRequestWithContext(ctx, "GET",
-		"https://api-futures.kucoin.com/api/v1/contracts/active",
+		baseURL+"/api/v1/contracts/active",
 		nil,
 	)
 
