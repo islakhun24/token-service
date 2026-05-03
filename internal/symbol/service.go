@@ -15,16 +15,9 @@ type Collector interface {
 	FetchSymbols(ctx context.Context) ([]SymbolInput, error)
 }
 
-// CoinGeckoResolver resolves CoinGecko IDs and market data.
-type CoinGeckoResolver interface {
-	ResolveID(base string) string
-	GetMarketCap(id string) float64
-}
-
 // Service orchestrates symbol collection, normalization, matching, and enrichment.
 type Service struct {
 	collectors []Collector
-	resolver   CoinGeckoResolver
 	validator  *Validator
 	matcher    *Matcher
 	builder    *RegistryBuilder
@@ -32,10 +25,9 @@ type Service struct {
 }
 
 // NewService creates a new symbol service.
-func NewService(collectors []Collector, resolver CoinGeckoResolver) *Service {
+func NewService(collectors []Collector) *Service {
 	return &Service{
 		collectors: collectors,
-		resolver:   resolver,
 		validator:  NewValidator(),
 		matcher:    NewMatcher(),
 		builder:    NewRegistryBuilder(),
@@ -56,7 +48,6 @@ func (s *Service) GetFuturesPairs(ctx context.Context) (*FuturesPairsResponse, e
 
 		g.Go(func() error {
 
-			// 🔥 IMPORTANT: sekarang ambil structured, bukan []string
 			items, err := c.FetchSymbols(ctx)
 			if err != nil {
 				fmt.Printf("Warning: failed to fetch from %s: %v\n", c.Name(), err)
@@ -67,7 +58,6 @@ func (s *Service) GetFuturesPairs(ctx context.Context) (*FuturesPairsResponse, e
 
 			for _, item := range items {
 
-				// 🔥 GANTI INI (CORE FIX)
 				canon, ok := Normalize(item)
 				if !ok {
 					continue
@@ -78,9 +68,10 @@ func (s *Service) GetFuturesPairs(ctx context.Context) (*FuturesPairsResponse, e
 				}
 
 				parsed = append(parsed, ExchangeSymbol{
-					Exchange:  c.Name(),
-					Raw:       item.Raw,
-					Canonical: canon,
+					Exchange:   c.Name(),
+					Raw:        item.Raw,
+					Canonical:  canon,
+					Categories: item.Categories,
 				})
 			}
 
@@ -102,13 +93,7 @@ func (s *Service) GetFuturesPairs(ctx context.Context) (*FuturesPairsResponse, e
 	// registry
 	entries := s.builder.Build(groups)
 
-	// enrich
-	for i := range entries {
-		entries[i].CoinGeckoID = s.resolver.ResolveID(entries[i].Base)
-		entries[i].Market.MarketCap = s.resolver.GetMarketCap(entries[i].CoinGeckoID)
-	}
-
-	// ranking
+	// ranking (by exchange count since market cap is enriched separately)
 	ranked := s.ranker.Rank(entries)
 
 	return &FuturesPairsResponse{
@@ -117,3 +102,4 @@ func (s *Service) GetFuturesPairs(ctx context.Context) (*FuturesPairsResponse, e
 		Data:    ranked,
 	}, nil
 }
+

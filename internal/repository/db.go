@@ -19,8 +19,8 @@ func InitDB(dsn string) (*gorm.DB, error) {
 
 	log.Println("Successfully connected to the database")
 
-	// Auto-migrate the Pair model
-	if err := db.AutoMigrate(&Pair{}); err != nil {
+	// Auto-migrate models
+	if err := db.AutoMigrate(&Pair{}, &PairCategory{}); err != nil {
 		log.Printf("Failed to auto migrate database: %v\n", err)
 		return nil, err
 	}

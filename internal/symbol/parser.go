@@ -13,7 +13,7 @@ var (
 	standardPattern = regexp.MustCompile(`^([A-Z0-9]+)USDT$`)
 )
 
-// 🔥 NEW: Field-based override
+// SymbolInput represents a raw symbol input from an exchange collector.
 type SymbolInput struct {
 	Exchange string
 
@@ -25,6 +25,9 @@ type SymbolInput struct {
 	Quote string
 
 	Status string
+
+	// Categories (e.g. from Binance underlyingSubType)
+	Categories []string
 }
 
 var baseAlias = map[string]string{

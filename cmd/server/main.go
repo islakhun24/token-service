@@ -23,20 +23,14 @@ import (
 func main() {
 	cfg := config.Load()
 
-	// Initialize CoinGecko client and worker
-	cgClient := asset.NewCoinGeckoClient(cfg)
-	cgWorker := worker.NewCoinGeckoWorker(cgClient)
+	// Initialize database
+	db, err := repository.InitDB(cfg.DatabaseDSN())
+	if err != nil {
+		log.Fatalf("Failed to initialize database: %v", err)
+	}
+	repo := repository.NewPairRepository(db)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	cgWorker.Start(ctx)
-	defer cgWorker.Stop()
-
-	// Give CoinGecko a moment to populate cache
-	time.Sleep(2 * time.Second)
-
-	// Initialize collectors
+	// Initialize collectors (exchange APIs)
 	collectors := []symbol.Collector{
 		collector.NewBinanceCollector(),
 		collector.NewOKXCollector(),
@@ -46,20 +40,22 @@ func main() {
 		collector.NewKucoinCollector(),
 	}
 
-	// Initialize symbol service
-	svc := symbol.NewService(collectors, cgClient)
+	// Initialize symbol service (exchange pair collection only)
+	svc := symbol.NewService(collectors)
 
-	// Initialize database
-	db, err := repository.InitDB(cfg.DatabaseDSN())
-	if err != nil {
-		log.Fatalf("Failed to initialize database: %v", err)
-	}
-	repo := repository.NewPairRepository(db)
-
-	// Initialize cron worker
+	// ===== Worker 1: Exchange Pair Sync =====
 	cronWorker := worker.NewCronWorker(svc, repo, cfg.CronSchedule)
 	cronWorker.Start()
 	defer cronWorker.Stop()
+
+	// ===== Worker 2: CoinMarketCap Enrichment =====
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	cmcClient := asset.NewCoinMarketCapClient()
+	cmcWorker := worker.NewCMCWorker(cmcClient, repo)
+	cmcWorker.Start(ctx)
+	defer cmcWorker.Stop()
 
 	// Initialize handlers
 	futuresHandler := handler.NewFuturesHandler(svc)
@@ -72,6 +68,7 @@ func main() {
 
 	r.GET("/futures/pairs", futuresHandler.GetPairs)
 	r.GET("/api/db/pairs", dbPairsHandler.GetPairs)
+	r.GET("/api/categories", dbPairsHandler.GetCategories)
 
 	// Health check
 	r.GET("/", func(c *gin.Context) {
@@ -97,9 +94,10 @@ func main() {
 		}
 	}()
 
-	log.Printf("🚀 Futures Symbol Module running on :%s", cfg.Port)
+	log.Printf("🚀 Token Service running on :%s", cfg.Port)
 	log.Printf("📡 Endpoint: GET http://localhost:%s/futures/pairs", cfg.Port)
 	log.Printf("📡 Endpoint: GET http://localhost:%s/api/db/pairs", cfg.Port)
+	log.Printf("📡 Endpoint: GET http://localhost:%s/api/categories", cfg.Port)
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
