@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"log"
 	"net/http"
 	"os"
@@ -21,13 +22,23 @@ import (
 )
 
 func main() {
+	migrateFlag := flag.String("m", "", "Run migration and exit")
+	flag.Parse()
+
 	cfg := config.Load()
 
-	// Initialize database
+	// Initialize database (AutoMigrate happens here)
 	db, err := repository.InitDB(cfg.DatabaseDSN())
 	if err != nil {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
+
+	// If ran with -m=all, exit cleanly after DB initialization (migration)
+	if *migrateFlag == "all" {
+		log.Println("Database migration completed successfully. Exiting.")
+		return
+	}
+
 	repo := repository.NewPairRepository(db)
 
 	// Initialize collectors (exchange APIs)
