@@ -10,7 +10,8 @@ import (
 	"futures-symbol-module/internal/symbol"
 )
 
-// CronWorker manages scheduled tasks.
+// CronWorker manages scheduled exchange pair sync tasks.
+// It only fetches from exchanges (Binance, OKX, Bybit, etc.) — no CMC.
 type CronWorker struct {
 	scheduler *cron.Cron
 	svc       *symbol.Service
@@ -51,7 +52,8 @@ func (w *CronWorker) Stop() {
 	log.Println("Cron scheduler stopped")
 }
 
-// RunJob executes the process of fetching pairs and storing them to DB.
+// RunJob fetches pairs from all exchanges and stores them to DB.
+// CMC enrichment (market cap, categories) is handled separately by CMCWorker.
 func (w *CronWorker) RunJob() {
 	log.Println("Starting scheduled pairs sync job...")
 
@@ -65,14 +67,38 @@ func (w *CronWorker) RunJob() {
 	var pairs []repository.Pair
 	for _, entry := range resp.Data {
 		p := repository.Pair{
-			Base:      entry.Base,
-			Quote:     entry.Quote,
-			Type:      entry.Type,
-			MarketCap: entry.Market.MarketCap,
+			Base:  entry.Base,
+			Quote: entry.Quote,
+			Type:  entry.Type,
 		}
 
-		if entry.CoinGeckoID != "" {
-			p.CoinGeckoID = ptr(entry.CoinGeckoID)
+		// Preserve CMC data if already enriched (don't overwrite with empty)
+		if entry.CMCID != nil {
+			p.CMCID = entry.CMCID
+		}
+		if entry.CMCName != nil {
+			p.CMCName = entry.CMCName
+		}
+		if entry.CMCSlug != nil {
+			p.CMCSlug = entry.CMCSlug
+		}
+		if entry.CMCRank != nil {
+			p.CMCRank = entry.CMCRank
+		}
+		if entry.Market.MarketCap > 0 {
+			p.MarketCap = entry.Market.MarketCap
+		}
+		if entry.CirculatingSupply > 0 {
+			p.CirculatingSupply = entry.CirculatingSupply
+		}
+		if entry.TotalSupply > 0 {
+			p.TotalSupply = entry.TotalSupply
+		}
+		if entry.MaxSupply > 0 {
+			p.MaxSupply = entry.MaxSupply
+		}
+		if entry.Market.MarketCap > 0 {
+			p.MarketCap = entry.Market.MarketCap
 		}
 
 		// Check each exchange from the map
@@ -104,6 +130,21 @@ func (w *CronWorker) RunJob() {
 	}
 
 	log.Printf("Cron job successfully synced %d pairs to database", len(pairs))
+
+	// Sync categories from exchange data (e.g. Binance underlyingSubType)
+	catCount := 0
+	for _, entry := range resp.Data {
+		if len(entry.Categories) > 0 {
+			if err := w.repo.ReplaceCategoriesForBase(ctx, entry.Base, entry.Categories); err != nil {
+				log.Printf("Failed to sync categories for %s: %v", entry.Base, err)
+				continue
+			}
+			catCount++
+		}
+	}
+	if catCount > 0 {
+		log.Printf("Synced categories for %d pairs from exchange data", catCount)
+	}
 }
 
 func ptr(s string) *string {

@@ -22,11 +22,12 @@ func (c *BinanceCollector) Name() string { return "binance" }
 
 type binanceResp struct {
 	Symbols []struct {
-		Symbol       string `json:"symbol"`
-		BaseAsset    string `json:"baseAsset"`
-		QuoteAsset   string `json:"quoteAsset"`
-		Status       string `json:"status"`
-		ContractType string `json:"contractType"`
+		Symbol            string   `json:"symbol"`
+		BaseAsset         string   `json:"baseAsset"`
+		QuoteAsset        string   `json:"quoteAsset"`
+		Status            string   `json:"status"`
+		ContractType      string   `json:"contractType"`
+		UnderlyingSubType []string `json:"underlyingSubType"`
 	} `json:"symbols"`
 }
 
@@ -56,11 +57,12 @@ func (c *BinanceCollector) FetchSymbols(ctx context.Context) ([]symbol.SymbolInp
 		}
 
 		result = append(result, symbol.SymbolInput{
-			Exchange: "binance",
-			Raw:      s.Symbol,
-			Base:     s.BaseAsset,
-			Quote:    s.QuoteAsset,
-			Status:   s.Status,
+			Exchange:   "binance",
+			Raw:        s.Symbol,
+			Base:       s.BaseAsset,
+			Quote:      s.QuoteAsset,
+			Status:     s.Status,
+			Categories: s.UnderlyingSubType,
 		})
 	}
 	return result, nil

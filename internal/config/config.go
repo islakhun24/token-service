@@ -36,16 +36,14 @@ func Load() *Config {
 	}
 
 	return &Config{
-		Port:                getEnv("PORT", "8081"),
-		CoinGeckoListTTL:    6 * time.Hour,
-		CoinGeckoMarketsTTL: 60 * time.Second,
-		DBHost:              getEnv("DB_HOST", "localhost"),
-		DBPort:              getEnv("DB_PORT", "5432"),
-		DBUser:              getEnv("DB_USER", "postgres"),
-		DBPassword:          getEnv("DB_PASSWORD", "postgres"),
-		DBName:              getEnv("DB_NAME", "token_service"),
-		DBSSLMode:           getEnv("DB_SSLMODE", "disable"),
-		CronSchedule:        getEnv("CRON_SCHEDULE", "@every 1h"),
+		Port:         getEnv("PORT", "8081"),
+		DBHost:       getEnv("DB_HOST", "localhost"),
+		DBPort:       getEnv("DB_PORT", "5432"),
+		DBUser:       getEnv("DB_USER", "postgres"),
+		DBPassword:   getEnv("DB_PASSWORD", "postgres"),
+		DBName:       getEnv("DB_NAME", "token_service"),
+		DBSSLMode:    getEnv("DB_SSLMODE", "disable"),
+		CronSchedule: getEnv("CRON_SCHEDULE", "@every 1h"),
 	}
 }
 

@@ -9,17 +9,23 @@ import (
 
 // Pair represents the database schema for stored cryptocurrency pairs.
 type Pair struct {
-	Base        string  `gorm:"primaryKey;column:base" json:"base"`
-	Quote       string  `gorm:"primaryKey;column:quote" json:"quote"`
-	Type        string  `gorm:"primaryKey;column:type" json:"type"`
-	Binance     *string `json:"binance"`
-	Bybit       *string `json:"bybit"`
-	OKX         *string `json:"okx"`
-	Mexc        *string `json:"mexc"`
-	Bitget      *string `json:"bitget"`
-	Kucoin      *string `json:"kucoin"`
-	CoinGeckoID *string `json:"coingecko_id"`
-	MarketCap   float64 `json:"market_cap"`
+	Base               string  `gorm:"primaryKey;column:base" json:"base"`
+	Quote              string  `gorm:"primaryKey;column:quote" json:"quote"`
+	Type               string  `gorm:"primaryKey;column:type" json:"type"`
+	Binance            *string `json:"binance"`
+	Bybit              *string `json:"bybit"`
+	OKX                *string `json:"okx"`
+	Mexc               *string `json:"mexc"`
+	Bitget             *string `json:"bitget"`
+	Kucoin             *string `json:"kucoin"`
+	CMCID              *int    `gorm:"column:cmc_id" json:"coinmarketcap_id"`
+	CMCName            *string `gorm:"column:cmc_name" json:"name"`
+	CMCSlug            *string `gorm:"column:cmc_slug" json:"slug"`
+	CMCRank            *int    `gorm:"column:cmc_rank" json:"cmc_rank"`
+	MarketCap          float64 `json:"market_cap"`
+	CirculatingSupply  float64 `gorm:"column:circulating_supply" json:"circulating_supply"`
+	TotalSupply        float64 `gorm:"column:total_supply" json:"total_supply"`
+	MaxSupply          float64 `gorm:"column:max_supply" json:"max_supply"`
 }
 
 // PairRepository defines operations for the Pair model.
@@ -41,7 +47,7 @@ func (r *PairRepository) BulkUpsert(ctx context.Context, pairs []Pair) error {
 	// Use ON CONFLICT to update the existing rows based on the primary keys
 	return r.db.WithContext(ctx).Clauses(clause.OnConflict{
 		Columns:   []clause.Column{{Name: "base"}, {Name: "quote"}, {Name: "type"}},
-		DoUpdates: clause.AssignmentColumns([]string{"binance", "bybit", "okx", "mexc", "bitget", "kucoin", "coin_gecko_id", "market_cap"}),
+		DoUpdates: clause.AssignmentColumns([]string{"binance", "bybit", "okx", "mexc", "bitget", "kucoin", "cmc_id", "cmc_name", "cmc_slug", "cmc_rank", "market_cap", "circulating_supply", "total_supply", "max_supply"}),
 	}).CreateInBatches(pairs, 100).Error
 }
 

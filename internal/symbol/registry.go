@@ -40,11 +40,20 @@ func (rb *RegistryBuilder) Build(groups map[string][]ExchangeSymbol) []RegistryE
 			entry.Available[ex] = false
 		}
 
-		// Mark available exchanges
+		// Mark available exchanges and collect categories
+		catSet := make(map[string]bool)
 		for _, sym := range group {
 			exKey := strings.ToLower(sym.Exchange)
 			entry.Exchanges[exKey] = sym.Raw
 			entry.Available[exKey] = true
+
+			// Collect categories (from any exchange that provides them)
+			for _, cat := range sym.Categories {
+				if cat != "" && !catSet[cat] {
+					catSet[cat] = true
+					entry.Categories = append(entry.Categories, cat)
+				}
+			}
 		}
 
 		entries = append(entries, entry)

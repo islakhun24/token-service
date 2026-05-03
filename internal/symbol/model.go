@@ -9,21 +9,29 @@ type CanonicalSymbol struct {
 
 // ExchangeSymbol maps an exchange-specific symbol string to its canonical form.
 type ExchangeSymbol struct {
-	Exchange  string
-	Raw       string
-	Canonical CanonicalSymbol
+	Exchange   string
+	Raw        string
+	Canonical  CanonicalSymbol
+	Categories []string
 }
 
 // RegistryEntry represents a matched symbol across all exchanges.
 type RegistryEntry struct {
-	Base        string            `json:"base"`
-	Quote       string            `json:"quote"`
-	Type        string            `json:"type"`
-	Rank        int               `json:"rank"`
-	Exchanges   map[string]string `json:"exchanges"`
-	Available   map[string]bool   `json:"available"`
-	CoinGeckoID string            `json:"coingecko_id"`
-	Market      MarketData        `json:"market"`
+	Base              string            `json:"base"`
+	Quote             string            `json:"quote"`
+	Type              string            `json:"type"`
+	Rank              int               `json:"rank"`
+	Exchanges         map[string]string `json:"exchanges"`
+	Available         map[string]bool   `json:"available"`
+	CMCID             *int              `json:"cmc_id,omitempty"`
+	CMCName           *string           `json:"cmc_name,omitempty"`
+	CMCSlug           *string           `json:"cmc_slug,omitempty"`
+	CMCRank           *int              `json:"cmc_rank,omitempty"`
+	Market            MarketData        `json:"market"`
+	CirculatingSupply float64           `json:"circulating_supply,omitempty"`
+	TotalSupply       float64           `json:"total_supply,omitempty"`
+	MaxSupply         float64           `json:"max_supply,omitempty"`
+	Categories        []string          `json:"categories"`
 }
 
 // MarketData holds market enrichment data.
@@ -36,20 +44,4 @@ type FuturesPairsResponse struct {
 	Version string          `json:"version"`
 	Total   int             `json:"total"`
 	Data    []RegistryEntry `json:"data"`
-}
-
-// CoinGeckoCoin represents an entry from /coins/list.
-type CoinGeckoCoin struct {
-	ID     string `json:"id"`
-	Symbol string `json:"symbol"`
-	Name   string `json:"name"`
-}
-
-// CoinGeckoMarket represents an entry from /coins/markets.
-type CoinGeckoMarket struct {
-	ID           string  `json:"id"`
-	Symbol       string  `json:"symbol"`
-	Name         string  `json:"name"`
-	MarketCap    float64 `json:"market_cap"`
-	CurrentPrice float64 `json:"current_price"`
 }
